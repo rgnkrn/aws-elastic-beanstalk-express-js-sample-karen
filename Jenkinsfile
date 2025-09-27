@@ -8,12 +8,6 @@ pipeline {
         DOCKER_CRED_ID = "0038f5ff-994e-44a6-b23b-b7e5d9dde26d"   // Jenkins credential ID
     }
 
-    options {
-        timestamps()
-        ansiColor('xterm')
-        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
-    }
-
     stages {
         stage('Checkout') {
             steps {
