@@ -83,10 +83,10 @@ pipeline {
             echo 'Pipeline completed. Check logs and reports.'
         }
         success {
-            echo '✅ Build and push successful!'
+            echo 'âœ… Build and push successful!'
         }
         failure {
-            echo '❌ Build failed. See error logs.'
+            echo 'âŒ Build failed. See error logs.'
         }
     }
 }
