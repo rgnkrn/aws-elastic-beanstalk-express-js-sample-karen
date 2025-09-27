@@ -7,9 +7,6 @@ pipeline {
     }
   }
 
-//Docker
-//rgnkrn1234
-//Hello1234@hello4321
 
   environment {
     // ==== CHANGE THESE FOR YOUR ENV ====
