@@ -1,4 +1,5 @@
 pipeline {
+
     agent {
         docker {
             image 'node:16'
@@ -17,7 +18,7 @@ pipeline {
     DOCKER_HOST = "tcp://docker:2375"
     }
 
-    }
+
 
     stages {
         stage('Checkout') {
