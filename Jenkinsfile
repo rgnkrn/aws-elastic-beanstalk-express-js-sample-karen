@@ -5,7 +5,7 @@ pipeline {
         REGISTRY    = "rgnkrn1234"   // e.g., "erginakaren"
         IMAGE_NAME  = "your-app-name"             // e.g., "project2-app"
         IMAGE_TAG   = "latest"
-        DOCKER_CRED_ID = "docker-registry-cred"   // Jenkins credential ID
+        DOCKER_CRED_ID = "0038f5ff-994e-44a6-b23b-b7e5d9dde26d"   // Jenkins credential ID
     }
 
     options {
