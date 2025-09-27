@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+    agent {
+    docker {
+        image 'node:16'
+        args '-u root:root'
+        reuseNode true
+    }
+}
 
     environment {
         REGISTRY    = "rgnkrn1234"        // your Docker Hub username
@@ -17,6 +23,13 @@ pipeline {
                 checkout scm
             }
         }
+
+        stage('Check Node') {
+            steps {
+                sh 'node -v && npm -v'
+            }
+        }
+
 
         stage('Install Dependencies') {
             steps {
