@@ -1,17 +1,23 @@
 pipeline {
-  agent {
+    agent {
     // Requirement: Use Node 16 Docker image as the build agent
     docker {
       image 'node:16'
       args '-u root:root'   // allow installing tools if needed
     }
-  }
+    }
 
     environment {
         REGISTRY    = "rgnkrn1234"   // e.g., "erginakaren"
         IMAGE_NAME  = "your-app-name"             // e.g., "project2-app"
         IMAGE_TAG   = "latest"
         DOCKER_CRED_ID = "0038f5ff-994e-44a6-b23b-b7e5d9dde26d"   // Jenkins credential ID
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
     }
 
     stages {
