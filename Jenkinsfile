@@ -1,10 +1,11 @@
 pipeline {
+    
     agent {
     // Requirement: Use Node 16 Docker image as the build agent
-    docker {
-      image 'node:16'
-      args '-u root:root'   // allow installing tools if needed
-    }
+        docker {
+            image 'node:16'
+            args '-u root:root'   // allow installing tools if needed
+     }
     }
 
     environment {
@@ -14,7 +15,7 @@ pipeline {
         DOCKER_CRED_ID = "0038f5ff-994e-44a6-b23b-b7e5d9dde26d"   // Jenkins credential ID
     }
 
-    }
+    
 
     stages {
         stage('Checkout') {
@@ -92,3 +93,4 @@ pipeline {
             echo '❌ Build failed. See error logs.'
         }
     }
+}
