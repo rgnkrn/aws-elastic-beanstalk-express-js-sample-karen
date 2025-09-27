@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16'
-            args '-u root:root'
-        }
-    }
+    agent any
 
     environment {
         REGISTRY    = "rgnkrn1234"        // your Docker Hub username
