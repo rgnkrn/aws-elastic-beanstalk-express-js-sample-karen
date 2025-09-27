@@ -1,5 +1,9 @@
 pipeline {
-    agent any   // Use any available Jenkins agent (no docker plugin needed)
+    agent {
+        docker{
+            image 'node:16'
+        }
+    }   // Use any available Jenkins agent (no docker plugin needed)
 
     environment {
         REGISTRY    = "rgnkrn1234"   // e.g., "erginakaren"
