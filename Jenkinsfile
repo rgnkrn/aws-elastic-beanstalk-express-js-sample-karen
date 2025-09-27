@@ -6,6 +6,9 @@ pipeline {
         IMAGE_NAME  = "express-sample"    // change to your app name
         IMAGE_TAG   = "latest"
         DOCKER_CRED_ID = "d0038f5ff-994e-44a6-b23b-b7e5d9dde26d"  // use a readable ID in Jenkins
+        DOCKER_HOST = "tcp://docker:2376"
+        DOCKER_TLS_VERIFY = "1"
+        DOCKER_CERT_PATH = "/certs/client"
     }
 
     stages {
