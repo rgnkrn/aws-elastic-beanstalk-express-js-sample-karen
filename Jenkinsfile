@@ -11,7 +11,7 @@ pipeline {
     REGISTRY    = "rgnkrn1234"
     IMAGE_NAME  = "express-sample"
     IMAGE_TAG   = "latest"
-    DOCKER_CRED_ID = "d0038f5ff-994e-44a6-b23b-b7e5d9dde26d"
+    DOCKER_CRED_ID = "dockerhub-id"
 
     // No TLS for now
     DOCKER_HOST = "tcp://docker:2375"
