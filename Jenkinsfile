@@ -21,16 +21,6 @@ pipeline {
       }
     }
 
-    stage('Install Docker CLI') {
-      steps {
-        sh '''
-          apt-get update
-          apt-get install -y docker.io
-          docker --version
-        '''
-      }
-    }
-
     stage('Check Docker Connectivity') {
       steps {
         sh 'docker version'
