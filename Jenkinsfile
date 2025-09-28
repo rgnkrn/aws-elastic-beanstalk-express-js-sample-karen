@@ -12,10 +12,10 @@ pipeline {
 
     environment {
         REGISTRY       = "rgnkrn1234"     // your DockerHub username
-        IMAGE_NAME     = "express-sample" // change to your repo name
+        IMAGE_NAME     = "ass2-app" // change to your repo name
         IMAGE_TAG      = "latest"
-        DOCKER_CRED_ID = "docker-registry-cred" // Jenkins DockerHub credentials
-        SNYK_CRED_ID   = "snyk-token"          // Jenkins Snyk API token
+        DOCKER_CRED_ID = "dockerhub-id" // Jenkins DockerHub credentials
+        SNYK_CRED_ID   = "snyk-id"          // Jenkins Snyk API token
 
         DOCKER_HOST     = "tcp://docker:2376"
         DOCKER_CERT_PATH = "/certs/client"
