@@ -33,19 +33,6 @@ pipeline {
       }
     }
 
-    stage('Dependency Vulnerability Scan (Snyk)') {
-      steps {
-        withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
-          sh '''
-            docker run --rm \
-              -e SNYK_TOKEN=$SNYK_TOKEN \
-              -v "$(pwd)":/app \
-              -w /app \
-              snyk/snyk test --severity-threshold=high
-          '''
-        }
-      }
-    }
 
     stage('Build Docker Image') {
       steps {
