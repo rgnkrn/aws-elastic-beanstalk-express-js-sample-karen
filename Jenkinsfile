@@ -5,18 +5,18 @@ pipeline {
             args '''
               -u root:root
               --priviledged
-              -v /usr/bin/docker:/usr/bin/docker
+              -v /usr/bin/docker:/usr/bin/docke
               -v /certs/client:/certs/client:ro
             '''
         }
     }
 
     environment {
-        REGISTRY       = "rgnkrn1234"     // your DockerHub username
-        IMAGE_NAME     = "ass2-app" // change to your repo name
+        REGISTRY       = "rgnkrn1234"     
+        IMAGE_NAME     = "ass2-app" 
         IMAGE_TAG      = "latest"
-        DOCKER_CRED_ID = "dockerhub-id" // Jenkins DockerHub credentials
-        SNYK_CRED_ID   = "snyk-id"          // Jenkins Snyk API token
+        DOCKER_CRED_ID = "dockerhub-id" 
+        SNYK_CRED_ID   = "snyk-id"      
 
         DOCKER_HOST     = "tcp://docker:2376"
         DOCKER_CERT_PATH = "/certs/client"
