@@ -1,41 +1,48 @@
 pipeline {
-    // Defines the agent for the entire pipeline.
-    // All stages will run inside a container based on this image.
+    // Use a primary agent that has the Docker client and Git installed.
+    // This agent will orchestrate all other actions.
     agent {
-        docker {
-            image 'node:16-alpine'
-        }
+        docker { image 'docker:git' }
     }
 
     // Environment variables available to all stages.
     environment {
         DOCKER_REGISTRY = 'rgnkrn1234'
         APP_NAME        = 'my-ass2-app'
+        SNYK_TOKEN      = credentials('synk-id')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Clones the source code from the repository, which is needed for the build.
+                // This works because the 'docker:git' agent has Git.
                 checkout scm
+            }
+        }
+
+        // We combine the Node.js steps into a single stage for efficiency.
+        stage('Install, Test & Scan') {
+            steps {
+                // The '.inside()' block runs these commands in a temporary container
+                // based on the 'node:16-alpine' image, which has the npm tools.
+                docker.image('node:16-alpine').inside {
+                    sh 'npm install --save'
+                    sh 'npm test'
+                    sh 'npm install -g snyk'
+                    sh 'snyk auth ${SNYK_TOKEN}'
+                    sh 'snyk test --severity-threshold=high'
+                }
             }
         }
 
         stage('Build and Push Docker Image') {
             steps {
-                // A 'script' block is needed for defining variables and logic.
                 script {
-                    // This block securely handles Docker registry authentication and image operations
-                    // using Jenkins's built-in Docker pipeline support.
+                    // This now works because the primary 'docker:git' agent has the
+                    // Docker client and can communicate with your DinD service.
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credential-id') {
-                        
-                        // Creates a unique image tag using the registry, app name, and build number.
                         def dockerImageTag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
-                        
-                        // Builds the Docker image from the Dockerfile in the repo.
                         def customImage = docker.build(dockerImageTag)
-
-                        // Pushes the built image to your Docker Hub registry.
                         customImage.push()
                     }
                 }
