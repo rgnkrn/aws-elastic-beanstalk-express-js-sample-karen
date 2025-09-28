@@ -2,9 +2,9 @@ pipeline {
     agent none
 
     environment {
-        DOCKER_REGISTRY = 'rgnkrn1234'
+        DOCKER_REGISTRY = 'rgnkrn1234'   // your DockerHub username/registry
         APP_NAME        = 'my-ass2-app'
-        SNYK_TOKEN      = credentials('synk-id')
+        SNYK_TOKEN      = credentials('snyk-id')
     }
 
     stages {
@@ -17,10 +17,10 @@ pipeline {
         }
 
         stage('Install, Test & Scan') {
-            agent { docker { image 'node:16-alpine' } }
+            agent { docker { image 'node:16' } }
             steps {
                 unstash 'source'
-                sh 'npm install'
+                sh 'npm install --save'
                 sh 'npm test'
                 sh 'npm install -g snyk'
                 sh 'snyk auth ${SNYK_TOKEN}'
@@ -29,20 +29,17 @@ pipeline {
         }
 
         stage('Build and Push Docker Image') {
-            // Mount Docker socket so this stage can talk to the host daemon
-            agent {
-                docker {
-                    image 'docker:24-cli'   // modern lightweight docker client
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
+            agent { docker { image 'docker:20.10' args '--network jenkins -v /var/run/docker.sock:/var/run/docker.sock' } }
             steps {
                 unstash 'source'
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credential-id') {
-                        def dockerImageTag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
-                        sh "docker build -t ${dockerImageTag} ."
-                        sh "docker push ${dockerImageTag}"
+                    def tag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
+                    sh "docker build -t ${tag} ."
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                          docker push ${tag}
+                        """
                     }
                 }
             }
@@ -50,14 +47,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline completed. Check logs and reports.'
-        }
         success {
-            echo '✅ Build, scan, and push successful!'
+            echo '✅ Build, scan and push completed successfully!'
         }
         failure {
-            echo '❌ Build failed. See error logs.'
+            echo '❌ Pipeline failed, check logs.'
         }
     }
 }
