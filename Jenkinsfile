@@ -1,29 +1,35 @@
 pipeline {
-
     agent {
         docker {
             image 'node:16'
-            args '-u root:root'
+            args '''
+              -u root:root
+              -v /usr/bin/docker:/usr/bin/docker
+              -v /certs/client:/certs/client:ro
+            '''
         }
     }
 
-    
     environment {
-    REGISTRY    = "rgnkrn1234"
-    IMAGE_NAME  = "express-sample"
-    IMAGE_TAG   = "latest"
-    DOCKER_CRED_ID = "dockerhub-id"
+        REGISTRY       = "rgnkrn1234"     // your DockerHub username
+        IMAGE_NAME     = "express-sample" // change to your repo name
+        IMAGE_TAG      = "latest"
+        DOCKER_CRED_ID = "docker-registry-cred" // Jenkins DockerHub credentials
+        SNYK_CRED_ID   = "snyk-token"          // Jenkins Snyk API token
 
-    // No TLS for now
-    DOCKER_HOST = "tcp://docker:2375"
+        DOCKER_HOST     = "tcp://docker:2376"
+        DOCKER_CERT_PATH = "/certs/client"
+        DOCKER_TLS_VERIFY = "1"
     }
-
-
 
     stages {
         stage('Checkout') {
+            steps { checkout scm }
+        }
+
+        stage('Check Docker Connectivity') {
             steps {
-                checkout scm
+                sh 'docker version'
             }
         }
 
@@ -39,23 +45,16 @@ pipeline {
             }
         }
 
-        stage('Dependency Vulnerability Scan (OWASP)') {
+        stage('Dependency Vulnerability Scan (Snyk)') {
             steps {
-                sh '''
-                    mkdir -p odc-reports
-                    docker run --rm \
-                        -v "$(pwd)":/src \
-                        -v "$(pwd)"/odc-reports:/report \
-                        owasp/dependency-check:latest \
-                        --scan /src \
-                        --format "ALL" \
-                        --out /report \
-                        --failOnCVSS 7
-                '''
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'odc-reports/**', fingerprint: true
+                withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
+                    sh '''
+                      docker run --rm \
+                        -e SNYK_TOKEN=$SNYK_TOKEN \
+                        -v "$(pwd)":/app \
+                        -w /app \
+                        snyk/snyk test --severity-threshold=high
+                    '''
                 }
             }
         }
@@ -67,9 +66,6 @@ pipeline {
         }
 
         stage('Push Docker Image') {
-            when {
-                anyOf { branch 'main'; branch 'master' }
-            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: env.DOCKER_CRED_ID,
@@ -77,8 +73,8 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
                     '''
                 }
             }
@@ -90,7 +86,7 @@ pipeline {
             echo 'Pipeline completed. Check logs and reports.'
         }
         success {
-            echo '✅ Build and push successful!'
+            echo '✅ Build, scan, and push successful!'
         }
         failure {
             echo '❌ Build failed. See error logs.'
