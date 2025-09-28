@@ -14,7 +14,7 @@ pipeline {
         DOCKER_IMAGE = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
         // Docker Hub credentials (exposes DOCKERHUB_USR and DOCKERHUB_PSW)
-        DOCKERHUB = credentials('dockerhub-id')
+        DOCKERHUB = credentials('DockerHub-ID')
 
         // Node environment
         NODE_ENV = 'test'
