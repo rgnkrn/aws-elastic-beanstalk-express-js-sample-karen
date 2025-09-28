@@ -1,98 +1,92 @@
 pipeline {
    agent {
-    docker {
-        image 'node:16'
-        args '''
-          -u root:root
-          --privileged
-          -v /var/run/docker.sock:/var/run/docker.sock
-          -v /usr/bin/docker:/usr/bin/docker
-          -v /certs/client:/certs/client:ro
-        '''
-    }
-    }
+      docker {
+         image 'node:16'
+         args '''
+           -u 0:0
+           -v /var/run/docker.sock:/var/run/docker.sock
+         '''
+      }
+   }
 
+   environment {
+      REGISTRY       = "rgnkrn1234"     
+      IMAGE_NAME     = "ass2-app" 
+      IMAGE_TAG      = "latest"
+      DOCKER_CRED_ID = "dockerhub-id" 
+      SNYK_CRED_ID   = "snyk-id"      
+   }
 
-    environment {
-        REGISTRY       = "rgnkrn1234"     
-        IMAGE_NAME     = "ass2-app" 
-        IMAGE_TAG      = "latest"
-        DOCKER_CRED_ID = "dockerhub-id" 
-        SNYK_CRED_ID   = "snyk-id"      
+   stages {
+      stage('Checkout') {
+         steps { checkout scm }
+      }
 
-        DOCKER_HOST     = "tcp://docker:2376"
-        DOCKER_CERT_PATH = "/certs/client"
-        DOCKER_TLS_VERIFY = "1"
-    }
+      stage('Check Docker Connectivity') {
+         steps {
+            sh 'whoami && id'
+            sh 'ls -l /var/run/docker.sock'
+            sh 'docker version'
+         }
+      }
 
-    stages {
-        stage('Checkout') {
-            steps { checkout scm }
-        }
+      stage('Install Dependencies') {
+         steps {
+            sh 'npm install --save'
+         }
+      }
 
-        stage('Check Docker Connectivity') {
-            steps {
-                sh 'docker version'
+      stage('Unit Tests') {
+         steps {
+            sh 'npm test'
+         }
+      }
+
+      stage('Dependency Vulnerability Scan (Snyk)') {
+         steps {
+            withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
+               sh '''
+                 docker run --rm \
+                   -e SNYK_TOKEN=$SNYK_TOKEN \
+                   -v "$(pwd)":/app \
+                   -w /app \
+                   snyk/snyk test --severity-threshold=high
+               '''
             }
-        }
+         }
+      }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install --save'
+      stage('Build Docker Image') {
+         steps {
+            sh 'docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .'
+         }
+      }
+
+      stage('Push Docker Image') {
+         steps {
+            withCredentials([usernamePassword(
+               credentialsId: env.DOCKER_CRED_ID,
+               usernameVariable: 'DOCKER_USER',
+               passwordVariable: 'DOCKER_PASS'
+            )]) {
+               sh '''
+                 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                 docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+               '''
             }
-        }
+         }
+      }
+   }
 
-        stage('Unit Tests') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
-        stage('Dependency Vulnerability Scan (Snyk)') {
-            steps {
-                withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
-                    sh '''
-                      docker run --rm \
-                        -e SNYK_TOKEN=$SNYK_TOKEN \
-                        -v "$(pwd)":/app \
-                        -w /app \
-                        snyk/snyk test --severity-threshold=high
-                    '''
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: env.DOCKER_CRED_ID,
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline completed. Check logs and reports.'
-        }
-        success {
-            echo '✅ Build, scan, and push successful!'
-        }
-        failure {
-            echo '❌ Build failed. See error logs.'
-        }
-    }
+   post {
+      always {
+         echo 'Pipeline completed. Check logs and reports.'
+      }
+      success {
+         echo '✅ Build, scan, and push successful!'
+      }
+      failure {
+         echo '❌ Build failed. See error logs.'
+      }
+   }
 }
