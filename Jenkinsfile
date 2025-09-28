@@ -1,50 +1,69 @@
 pipeline {
-    agent none
+    agent {
+        docker {
+            // Requirement: Use Node 16 as build agent
+            image 'node:16'
+            args '-u root:root'  // Run as root to avoid permission issues
+        }
+    }
 
     environment {
-        DOCKER_REGISTRY = 'rgnkrn1234'
-        APP_NAME        = 'my-ass2-app'
-        IMAGE_TAG       = 'latest'
-        SNYK_TOKEN      = credentials('snyk-id')   // replace with your Snyk creds ID
-        DOCKER_CREDS    = 'dockerhub-credential-id' // replace with your DockerHub creds ID
+        REGISTRY = "rgnkrn1234"   // 🔹 replace with your Docker Hub username
+        IMAGE = "aws-node-app"            // 🔹 name of your app imag
+        TAG = "latest"
     }
 
     stages {
         stage('Checkout') {
-            agent { docker { image 'alpine/git' } }
             steps {
-                checkout scm
-                stash name: 'source', includes: '**/*'
+                git branch: 'main',
+                    url: 'https://github.com/YOUR_GITHUB_USERNAME/aws-elastic-beanstalk-express-js-sample.git'
             }
         }
 
-        stage('Install, Test & Scan') {
-            agent { docker { image 'node:16' } }
+        stage('Install Dependencies') {
             steps {
-                unstash 'source'
                 sh 'npm install --save'
-                sh 'npm test'
-                sh 'npm install -g snyk'
-                sh 'snyk auth ${SNYK_TOKEN}'
-                sh 'snyk test --severity-threshold=high'
             }
         }
 
-        stage('Build and Push Docker Image') {
-            agent { docker { image 'node:16' } }
+        stage('Run Tests') {
             steps {
-                unstash 'source'
-                // Install Docker CLI inside node:16 container
+                sh 'npm test'
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                // Example using Snyk CLI, must be installed in Jenkins
                 sh '''
-                  apt-get update
-                  apt-get install -y docker.io
+                    if ! command -v snyk >/dev/null; then
+                        npm install -g snyk
+                    fi
+                    snyk test || exit 1
                 '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDS) {
-                        def dockerImageTag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
-                        sh "docker build -t ${dockerImageTag} ."
-                        sh "docker push ${dockerImageTag}"
-                    }
+                    sh """
+                        docker build -t $REGISTRY/$IMAGE:$TAG .
+                    """
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-id', 
+                                                 usernameVariable: 'DOCKER_USER', 
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $REGISTRY/$IMAGE:$TAG
+                    """
                 }
             }
         }
@@ -52,13 +71,14 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline completed. Check logs and reports.'
-        }
-        success {
-            echo '✅ Build, test, scan, and push successful!'
+            archiveArtifacts artifacts: '**/npm-debug.log', allowEmptyArchive: true
+            junit '**/test-results.xml'
         }
         failure {
-            echo '❌ Build failed. See error logs.'
+            echo "❌ Build failed. Check logs and fix issues."
+        }
+        success {
+            echo "✅ Build, Test, Scan, and Deploy completed successfully."
         }
     }
 }
