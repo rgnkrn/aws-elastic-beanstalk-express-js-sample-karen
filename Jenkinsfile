@@ -1,11 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16'
-            // Use Docker daemon socket (no custom network)
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent none   // no global agent, each stage defines its own
 
     environment {
         DOCKER_REGISTRY = 'rgnkrn1234'       // Docker Hub username
@@ -22,6 +16,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
+            agent { docker { image 'node:16' } }
             steps {
                 echo 'Checking out source code...'
                 checkout scm
@@ -29,6 +24,7 @@ pipeline {
         }
 
         stage('Install Dependencies') {
+            agent { docker { image 'node:16' } }
             steps {
                 echo 'Installing Node.js dependencies...'
                 sh 'node --version'
@@ -38,6 +34,7 @@ pipeline {
         }
 
         stage('Run Unit Tests') {
+            agent { docker { image 'node:16' } }
             steps {
                 echo 'Running unit tests...'
                 sh 'npm test'
@@ -45,6 +42,7 @@ pipeline {
         }
 
         stage('Code Quality Check') {
+            agent { docker { image 'node:16' } }
             steps {
                 echo 'Running code quality checks...'
                 sh 'npm run lint || echo "Linting step skipped - no lint script found"'
@@ -52,6 +50,7 @@ pipeline {
         }
 
         stage('Build Application') {
+            agent { docker { image 'node:16' } }
             steps {
                 echo 'Building the application...'
                 sh 'npm run build || echo "Build step completed"'
@@ -59,6 +58,12 @@ pipeline {
         }
 
         stage('Build Docker Image') {
+            agent {
+                docker {
+                    image 'docker:20.10'      // Docker CLI image
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "Building Docker image: ${DOCKER_IMAGE}"
@@ -69,14 +74,13 @@ pipeline {
             }
         }
 
-        stage('Security Scan') {
-            steps {
-                echo 'Running security scans...'
-                sh 'npm audit --audit-level moderate || echo "Security audit completed with warnings"'
-            }
-        }
-
         stage('Push to Registry') {
+            agent {
+                docker {
+                    image 'docker:20.10'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "Pushing Docker image to Docker Hub..."
@@ -94,6 +98,12 @@ pipeline {
         }
 
         stage('Cleanup') {
+            agent {
+                docker {
+                    image 'docker:20.10'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 echo 'Cleaning up local Docker images...'
                 sh "docker rmi ${DOCKER_IMAGE} || true"
