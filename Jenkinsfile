@@ -11,15 +11,8 @@ pipeline {
     IMAGE_NAME     = "ass2-app"
     IMAGE_TAG      = "latest"
     DOCKER_CRED_ID = "dockerhub-id"
-    SNYK_CRED_ID   = "snyk-id"
+    SNYK_CRED_ID   = "synk-id"
   }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
 
     stage('Install Dependencies') {
       steps {
