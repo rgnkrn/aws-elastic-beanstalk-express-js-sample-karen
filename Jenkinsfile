@@ -1,15 +1,17 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16'
-            args '''
-              -u root:root
-              --privileged
-              -v /usr/bin/docker:/usr/bin/docke
-              -v /certs/client:/certs/client:ro
-            '''
-        }
+   agent {
+    docker {
+        image 'node:16'
+        args '''
+          -u root:root
+          --privileged
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -v /usr/bin/docker:/usr/bin/docker
+          -v /certs/client:/certs/client:ro
+        '''
     }
+    }
+
 
     environment {
         REGISTRY       = "rgnkrn1234"     
