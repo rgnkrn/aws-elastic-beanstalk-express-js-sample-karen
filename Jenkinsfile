@@ -48,7 +48,7 @@ pipeline {
                     junit 'test-results.xml'
                     // Archive test coverage reports if available
                     publishHTML([
-                        allowMissing: false,
+                        allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
                         reportDir: 'coverage',
@@ -120,9 +120,11 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline execution completed.'
-            archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
-            cleanWs()
+            node {
+                echo 'Pipeline execution completed.'
+                archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
+                cleanWs()
+            }
         }
 
         success {
