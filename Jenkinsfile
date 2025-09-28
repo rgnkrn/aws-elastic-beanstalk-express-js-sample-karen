@@ -1,92 +1,99 @@
 pipeline {
-   agent {
-      docker {
-         image 'node:16'
-         args '''
-           -u 0:0
-           -v /var/run/docker.sock:/var/run/docker.sock
-         '''
-      }
-   }
+  agent {
+    docker {
+      image 'node:16'
+      args '-u 0:0 -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
-   environment {
-      REGISTRY       = "rgnkrn1234"     
-      IMAGE_NAME     = "ass2-app" 
-      IMAGE_TAG      = "latest"
-      DOCKER_CRED_ID = "dockerhub-id" 
-      SNYK_CRED_ID   = "snyk-id"      
-   }
+  environment {
+    REGISTRY       = "rgnkrn1234"
+    IMAGE_NAME     = "ass2-app"
+    IMAGE_TAG      = "latest"
+    DOCKER_CRED_ID = "dockerhub-id"
+    SNYK_CRED_ID   = "snyk-id"
+  }
 
-   stages {
-      stage('Checkout') {
-         steps { checkout scm }
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
       }
+    }
 
-      stage('Check Docker Connectivity') {
-         steps {
-            sh 'whoami && id'
-            sh 'ls -l /var/run/docker.sock'
-            sh 'docker version'
-         }
+    stage('Install Docker CLI') {
+      steps {
+        sh '''
+          apt-get update
+          apt-get install -y docker.io
+          docker --version
+        '''
       }
+    }
 
-      stage('Install Dependencies') {
-         steps {
-            sh 'npm install --save'
-         }
+    stage('Check Docker Connectivity') {
+      steps {
+        sh 'docker version'
       }
+    }
 
-      stage('Unit Tests') {
-         steps {
-            sh 'npm test'
-         }
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install --save'
       }
+    }
 
-      stage('Dependency Vulnerability Scan (Snyk)') {
-         steps {
-            withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
-               sh '''
-                 docker run --rm \
-                   -e SNYK_TOKEN=$SNYK_TOKEN \
-                   -v "$(pwd)":/app \
-                   -w /app \
-                   snyk/snyk test --severity-threshold=high
-               '''
-            }
-         }
+    stage('Unit Tests') {
+      steps {
+        sh 'npm test'
       }
+    }
 
-      stage('Build Docker Image') {
-         steps {
-            sh 'docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .'
-         }
+    stage('Dependency Vulnerability Scan (Snyk)') {
+      steps {
+        withCredentials([string(credentialsId: env.SNYK_CRED_ID, variable: 'SNYK_TOKEN')]) {
+          sh '''
+            docker run --rm \
+              -e SNYK_TOKEN=$SNYK_TOKEN \
+              -v "$(pwd)":/app \
+              -w /app \
+              snyk/snyk test --severity-threshold=high
+          '''
+        }
       }
+    }
 
-      stage('Push Docker Image') {
-         steps {
-            withCredentials([usernamePassword(
-               credentialsId: env.DOCKER_CRED_ID,
-               usernameVariable: 'DOCKER_USER',
-               passwordVariable: 'DOCKER_PASS'
-            )]) {
-               sh '''
-                 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                 docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
-               '''
-            }
-         }
+    stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .'
       }
-   }
+    }
 
-   post {
-      always {
-         echo 'Pipeline completed. Check logs and reports.'
+    stage('Push Docker Image') {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: env.DOCKER_CRED_ID,
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
+          sh '''
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          '''
+        }
       }
-      success {
-         echo '✅ Build, scan, and push successful!'
-      }
-      failure {
-         echo '❌ Build failed. See error logs.'
-      }
-   }
+    }
+  }
+
+  post {
+    always {
+      echo 'Pipeline completed. Check logs and reports.'
+    }
+    success {
+      echo '✅ Build, scan, and push successful!'
+    }
+    failure {
+      echo '❌ Build failed. See error logs.'
+    }
+  }
 }
