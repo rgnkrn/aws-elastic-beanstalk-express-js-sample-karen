@@ -54,19 +54,19 @@ pipeline {
             steps {
                 // A 'script' block is needed for defining variables and logic.
                 script {
-                    // This block securely accesses Docker Hub credentials.
-                    // IMPORTANT: 'dockerhub-credential-id' must be a 'Username with password' credential.
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credential-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        // Logs into the Docker registry.
-                        sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+                    // This block securely handles Docker registry authentication and image operations
+                    // using Jenkins's built-in Docker pipeline support.
+                    // It uses the 'dockerhub-credential-id' you've already configured.
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credential-id') {
                         
                         // Creates a unique image tag using the registry, app name, and build number.
-                        def dockerImage = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
+                        def dockerImageTag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
                         
                         // Builds the Docker image from the Dockerfile in the repo.
-                        sh "docker build -t ${dockerImage} ."
+                        def customImage = docker.build(dockerImageTag)
+
                         // Pushes the built image to your Docker Hub registry.
-                        sh "docker push ${dockerImage}"
+                        customImage.push()
                     }
                 }
             }
