@@ -2,25 +2,24 @@ pipeline {
     agent {
         docker {
             image 'node:16'
-            // Use Docker daemon from DinD container
-            args '--network jenkins -v docker-certs-client:/certs/client:ro -e DOCKER_HOST=tcp://docker:2376 -e DOCKER_CERT_PATH=/certs/client -e DOCKER_TLS_VERIFY=1'
+            // Use Docker daemon from DinD container (simplified without TLS)
+            args '--network jenkins -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
-    
+
     environment {
-        
-        DOCKER_REGISTRY = 'rgnkrn1234' // Replace with your actual registry
-        IMAGE_NAME = 'your-app-name'          // Replace with your app name
+        DOCKER_REGISTRY = 'rgnkrn1234'       // Docker Hub username
+        IMAGE_NAME = 'your-app-name'         // Replace with your app name
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKER_IMAGE = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-        
-        // Docker Hub credentials (configure these in Jenkins credentials)
-        DOCKER_CREDENTIALS = credentials('dockerhub-id')
-        
+
+        // Docker Hub credentials (will expose DOCKERHUB_USR and DOCKERHUB_PSW)
+        DOCKERHUB = credentials('dockerhub-id')
+
         // Node environment
         NODE_ENV = 'test'
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -28,16 +27,16 @@ pipeline {
                 checkout scm
             }
         }
-        
+
         stage('Install Dependencies') {
             steps {
                 echo 'Installing Node.js dependencies...'
                 sh 'node --version'
                 sh 'npm --version'
-                sh 'npm install --save'
+                sh 'npm install'
             }
         }
-        
+
         stage('Run Unit Tests') {
             steps {
                 echo 'Running unit tests...'
@@ -45,8 +44,8 @@ pipeline {
             }
             post {
                 always {
-                    // Archive test results if using a test reporter like Jest
-                    publishTestResults testResultsPattern: 'test-results.xml'
+                    // Archive test results (JUnit format)
+                    junit 'test-results.xml'
                     // Archive test coverage reports if available
                     publishHTML([
                         allowMissing: false,
@@ -59,69 +58,56 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Code Quality Check') {
             steps {
                 echo 'Running code quality checks...'
-                // Optional: Add linting
                 sh 'npm run lint || echo "Linting step skipped - no lint script found"'
             }
         }
-        
+
         stage('Build Application') {
             steps {
                 echo 'Building the application...'
                 sh 'npm run build || echo "Build step completed"'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
                     echo "Building Docker image: ${DOCKER_IMAGE}"
-                    
-                    // Docker is already available through DinD setup
-                    // No need to install Docker CLI - it's available via environment
                     sh 'docker --version'
-                    
-                    // Build the Docker image
                     sh "docker build -t ${DOCKER_IMAGE} ."
                     sh "docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
                 }
             }
         }
-        
+
         stage('Security Scan') {
             steps {
                 echo 'Running security scans...'
-                // Optional: Add security scanning
                 sh 'npm audit --audit-level moderate || echo "Security audit completed with warnings"'
             }
         }
-        
+
         stage('Push to Registry') {
             steps {
                 script {
-                    echo "Pushing Docker image to registry..."
-                    
-                    // Login to Docker registry
-                    sh "echo '${DOCKER_CREDENTIALS_PSW}' | docker login ${DOCKER_REGISTRY} -u '${DOCKER_CREDENTIALS_USR}' --password-stdin"
-                    
-                    // Push the images
+                    echo "Pushing Docker image to Docker Hub..."
+                    sh "echo '${DOCKERHUB_PSW}' | docker login -u '${DOCKERHUB_USR}' --password-stdin"
                     sh "docker push ${DOCKER_IMAGE}"
                     sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
-                    
                     echo "Successfully pushed ${DOCKER_IMAGE}"
                 }
             }
             post {
                 always {
-                    // Cleanup: logout from Docker registry
-                    sh "docker logout ${DOCKER_REGISTRY}"
+                    sh 'docker logout'
                 }
             }
         }
-        
+
         stage('Cleanup') {
             steps {
                 echo 'Cleaning up local Docker images...'
@@ -131,34 +117,22 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             echo 'Pipeline execution completed.'
-            
-            // Archive build artifacts
             archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
-            
-            // Clean workspace
             cleanWs()
         }
-        
+
         success {
             echo 'Pipeline succeeded! ✅'
-            // Optional: Send success notification
-            // slackSend channel: '#deployments', 
-            //          color: 'good',
-            //          message: "✅ Build #${BUILD_NUMBER} succeeded for ${JOB_NAME}"
         }
-        
+
         failure {
             echo 'Pipeline failed! ❌'
-            // Optional: Send failure notification
-            // slackSend channel: '#deployments', 
-            //          color: 'danger',
-            //          message: "❌ Build #${BUILD_NUMBER} failed for ${JOB_NAME}"
         }
-        
+
         unstable {
             echo 'Pipeline is unstable! ⚠️'
         }
