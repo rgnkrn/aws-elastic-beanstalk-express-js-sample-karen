@@ -1,15 +1,17 @@
 pipeline {
-    agent none
+    agent none   // each stage defines its own agent
 
     environment {
-        DOCKER_REGISTRY = 'rgnkrn1234'   // your DockerHub username/registry
-        APP_NAME        = 'my-ass2-app'
-        SNYK_TOKEN      = credentials('snyk-id')
+        DOCKER_REGISTRY = 'rgnkrn1234'         // your DockerHub username/namespace
+        APP_NAME        = 'my-ass2-app'        // image nam
+        IMAGE_TAG       = "build-${BUILD_NUMBER}"
+        SNYK_TOKEN      = credentials('snyk-id')       // Jenkins secret text credential
+        DOCKER_CREDS    = 'dockerhub-credential-id'    // Jenkins username/password credential
     }
 
     stages {
         stage('Checkout') {
-            agent { docker { image 'alpine/git' } }
+            agent { docker { image 'node:16' } }
             steps {
                 checkout scm
                 stash name: 'source', includes: '**/*'
@@ -29,17 +31,19 @@ pipeline {
         }
 
         stage('Build and Push Docker Image') {
-            agent { docker { image 'docker:20.10' args '--network jenkins -v /var/run/docker.sock:/var/run/docker.sock' } }
+            agent {
+                docker {
+                    image 'node:16'
+                    args '--network jenkins -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 unstash 'source'
                 script {
-                    def tag = "${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
-                    sh "docker build -t ${tag} ."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                          docker push ${tag}
-                        """
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDS) {
+                        def dockerImageTag = "${DOCKER_REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
+                        sh "docker build -t ${dockerImageTag} ."
+                        sh "docker push ${dockerImageTag}"
                     }
                 }
             }
@@ -47,11 +51,16 @@ pipeline {
     }
 
     post {
+        always {
+            echo 'Pipeline completed. Check logs and reports.'
+        }
         success {
-            echo '✅ Build, scan and push completed successfully!'
+            echo "✅ Build, scan, and push successful! Image: ${DOCKER_REGISTRY}/${APP_NAME}:${IMAGE_TAG}"
         }
         failure {
-            echo '❌ Pipeline failed, check logs.'
+            echo '❌ Build failed. See error logs.'
         }
     }
 }
+
+
