@@ -4,6 +4,7 @@ pipeline {
             image 'node:16'
             args '''
               -u root:root
+              --priviledged
               -v /usr/bin/docker:/usr/bin/docker
               -v /certs/client:/certs/client:ro
             '''
