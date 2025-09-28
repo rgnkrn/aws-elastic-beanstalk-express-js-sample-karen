@@ -2,20 +2,22 @@ pipeline {
     agent none   // no global agent, each stage defines its own
 
     environment {
-        DOCKER_REGISTRY = 'rgnkrn1234'       // 🔹 Docker Hub username
-        IMAGE_NAME = 'your-app-name'         // 🔹 Replace with your app name
+        DOCKER_REGISTRY = 'rgnkrn1234'       
+        IMAGE_NAME = 'your-app-name'         
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKER_IMAGE = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
-        // 🔹 Docker Hub credentials (exposes DOCKERHUB_USR and DOCKERHUB_PSW)
         DOCKERHUB = credentials('DockerHub-ID')
-
         NODE_ENV = 'test'
     }
 
     stages {
         stage('Checkout') {
-            agent { docker { image 'node:16' } }
+            agent {
+                docker {
+                    image 'node:16'
+                }
+            }
             steps {
                 echo '📥 Checking out source code...'
                 checkout scm
@@ -23,7 +25,11 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            agent { docker { image 'node:16' } }
+            agent {
+                docker {
+                    image 'node:16'
+                }
+            }
             steps {
                 echo '📦 Installing Node.js dependencies...'
                 sh 'node --version'
@@ -33,7 +39,11 @@ pipeline {
         }
 
         stage('Run Unit Tests') {
-            agent { docker { image 'node:16' } }
+            agent {
+                docker {
+                    image 'node:16'
+                }
+            }
             steps {
                 echo '🧪 Running unit tests...'
                 sh 'npm test'
@@ -41,7 +51,11 @@ pipeline {
         }
 
         stage('Code Quality Check') {
-            agent { docker { image 'node:16' } }
+            agent {
+                docker {
+                    image 'node:16'
+                }
+            }
             steps {
                 echo '🔎 Running code quality checks...'
                 sh 'npm run lint || echo "⚠️ Lint skipped - no lint script found"'
@@ -49,7 +63,11 @@ pipeline {
         }
 
         stage('Build Application') {
-            agent { docker { image 'node:16' } }
+            agent {
+                docker {
+                    image 'node:16'
+                }
+            }
             steps {
                 echo '⚙️ Building the application...'
                 sh 'npm run build || echo "Build step completed"'
@@ -57,7 +75,12 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
+            agent {
+                docker {
+                    image 'node:16'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "🐳 Installing Docker CLI inside Node 16 agent..."
@@ -71,7 +94,12 @@ pipeline {
         }
 
         stage('Push to Registry') {
-            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
+            agent {
+                docker {
+                    image 'node:16'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "📤 Pushing Docker image to Docker Hub..."
@@ -79,7 +107,6 @@ pipeline {
                     sh "echo '${DOCKERHUB_PSW}' | docker login -u '${DOCKERHUB_USR}' --password-stdin"
                     sh "docker push ${DOCKER_IMAGE}"
                     sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
-                    echo "✅ Successfully pushed ${DOCKER_IMAGE}"
                 }
             }
             post {
@@ -90,7 +117,12 @@ pipeline {
         }
 
         stage('Cleanup') {
-            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
+            agent {
+                docker {
+                    image 'node:16'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 echo '🧹 Cleaning up local Docker images...'
                 sh 'apt-get update && apt-get install -y docker.io curl'
