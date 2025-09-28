@@ -14,6 +14,13 @@ pipeline {
     SNYK_CRED_ID   = "synk-id"
   }
 
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Install Dependencies') {
       steps {
         sh 'npm install --save'
