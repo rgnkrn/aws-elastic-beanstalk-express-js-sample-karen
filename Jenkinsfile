@@ -2,8 +2,8 @@ pipeline {
     agent {
         docker {
             image 'node:16'
-            // Use Docker daemon from DinD container (simplified without TLS)
-            args '--network jenkins -v /var/run/docker.sock:/var/run/docker.sock'
+            // Use Docker daemon socket (no custom network)
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -13,7 +13,7 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKER_IMAGE = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
-        // Docker Hub credentials (will expose DOCKERHUB_USR and DOCKERHUB_PSW)
+        // Docker Hub credentials (exposes DOCKERHUB_USR and DOCKERHUB_PSW)
         DOCKERHUB = credentials('dockerhub-id')
 
         // Node environment
@@ -120,9 +120,11 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline execution completed.'
-            archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
-            cleanWs()
+            node {
+                echo 'Pipeline execution completed.'
+                archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
+                cleanWs()
+            }
         }
 
         success {
