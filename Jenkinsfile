@@ -42,21 +42,6 @@ pipeline {
                 echo 'Running unit tests...'
                 sh 'npm test'
             }
-            post {
-                always {
-                    // Archive test results (JUnit format)
-                    junit 'test-results.xml'
-                    // Archive test coverage reports if available
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
-                }
-            }
         }
 
         stage('Code Quality Check') {
