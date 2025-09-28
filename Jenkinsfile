@@ -54,7 +54,7 @@ pipeline {
             steps {
                 // A 'script' block is needed for defining variables and logic.
                 script {
-                    // This block securely handles Docker registry authentication and image operations
+                    // This block securely handles Docker registry authentication and image operation
                     // using Jenkins's built-in Docker pipeline support.
                     // It uses the 'dockerhub-credential-id' you've already configured.
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credential-id') {
