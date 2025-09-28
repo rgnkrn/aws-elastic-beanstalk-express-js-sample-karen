@@ -6,10 +6,13 @@ pipeline {
             image 'node:16-alpine'
             // Expose the Docker socket to build/push images from within the container
             args '-v /var/run/docker.sock:/var/run/docker.sock'
+            // Ensures all stages run on the same container, preserving the workspace context.
+            // This helps prevent "could not be found" and "MissingContextVariableException" errors.
+            reuseNode true
         }
     }
 
-    // Environment variables used throughout the pipeline
+  // Environment variables used throughout the pipeline
     environment {
         // Define your Docker registry URL (e.g., 'your-dockerhub-username')
         DOCKER_REGISTRY = 'rgnkrn1234'
@@ -108,3 +111,4 @@ pipeline {
         }
     }
 }
+
