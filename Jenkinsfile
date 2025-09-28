@@ -8,7 +8,7 @@ pipeline {
     }
     
     environment {
-        // Define your Docker registry and image name
+        
         DOCKER_REGISTRY = 'rgnkrn1234' // Replace with your actual registry
         IMAGE_NAME = 'your-app-name'          // Replace with your app name
         IMAGE_TAG = "${BUILD_NUMBER}"
