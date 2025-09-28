@@ -21,12 +21,6 @@ pipeline {
       }
     }
 
-    stage('Check Docker Connectivity') {
-      steps {
-        sh 'docker version'
-      }
-    }
-
     stage('Install Dependencies') {
       steps {
         sh 'npm install --save'
