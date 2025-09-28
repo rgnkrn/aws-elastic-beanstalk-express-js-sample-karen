@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = 'rgnkrn1234'         // your DockerHub username/namespace
-        APP_NAME        = 'my-ass2-app'        // image nam
+        APP_NAME        = 'my-ass2-app'        // image name
         IMAGE_TAG       = "build-${BUILD_NUMBER}"
         SNYK_TOKEN      = credentials('snyk-id')       // Jenkins secret text credential
         DOCKER_CREDS    = 'dockerhub-credential-id'    // Jenkins username/password credential
@@ -62,5 +62,3 @@ pipeline {
         }
     }
 }
-
-
