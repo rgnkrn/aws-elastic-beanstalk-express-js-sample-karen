@@ -10,7 +10,6 @@ pipeline {
         // 🔹 Docker Hub credentials (exposes DOCKERHUB_USR and DOCKERHUB_PSW)
         DOCKERHUB = credentials('DockerHub-ID')
 
-        // Node environment
         NODE_ENV = 'test'
     }
 
@@ -58,11 +57,13 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            agent any   // ✅ run on Jenkins host (has Docker installed)
+            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
             steps {
                 script {
+                    echo "🐳 Installing Docker CLI inside Node 16 agent..."
+                    sh 'apt-get update && apt-get install -y docker.io curl'
+
                     echo "🐳 Building Docker image: ${DOCKER_IMAGE}"
-                    sh 'docker --version'
                     sh "docker build -t ${DOCKER_IMAGE} ."
                     sh "docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
                 }
@@ -70,10 +71,11 @@ pipeline {
         }
 
         stage('Push to Registry') {
-            agent any   // ✅ run on Jenkins host
+            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
             steps {
                 script {
                     echo "📤 Pushing Docker image to Docker Hub..."
+                    sh 'apt-get update && apt-get install -y docker.io curl'
                     sh "echo '${DOCKERHUB_PSW}' | docker login -u '${DOCKERHUB_USR}' --password-stdin"
                     sh "docker push ${DOCKER_IMAGE}"
                     sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
@@ -82,15 +84,16 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker logout'
+                    sh 'docker logout || true'
                 }
             }
         }
 
         stage('Cleanup') {
-            agent any   // ✅ run on Jenkins host
+            agent { docker { image 'node:16' args '-v /var/run/docker.sock:/var/run/docker.sock' } }
             steps {
                 echo '🧹 Cleaning up local Docker images...'
+                sh 'apt-get update && apt-get install -y docker.io curl'
                 sh "docker rmi ${DOCKER_IMAGE} || true"
                 sh "docker rmi ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest || true"
                 sh 'docker system prune -f || true'
