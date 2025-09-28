@@ -100,11 +100,9 @@ pipeline {
 
     post {
         always {
-            node {
-                echo '📦 Pipeline execution completed.'
-                archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
-                cleanWs()
-            }
+            echo '📦 Pipeline execution completed.'
+            archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
+            cleanWs()
         }
 
         success {
