@@ -1,3 +1,5 @@
+// Assignment 2 Jenkinsfile with Snyk vulnerability scan
+
 pipeline {
     agent {
         docker {
@@ -19,14 +21,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo '📥 Checking out source code...'
+                echo 'Checking out source code.'
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo '📦 Installing Node.js dependencies...'
+                echo 'Installing Node.js dependencies.'
                 sh 'node --version'
                 sh 'npm --version'
                 sh 'npm install --save'
@@ -35,7 +37,7 @@ pipeline {
 
         stage('Snyk Vulnerability Scan') {
             steps {
-                echo '🛡️ Running Snyk dependency vulnerability scan...'
+                echo 'Running Snyk dependency vulnerability scan.'
                 sh 'npm install -g snyk'
                 withEnv(["SNYK_TOKEN=${SNYK_TOKEN}"]) {
                     sh 'snyk auth $SNYK_TOKEN'
@@ -46,7 +48,7 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                echo '🧪 Running unit tests...'
+                echo 'Running unit tests.'
                 sh 'npm test'
             }
         }
@@ -54,10 +56,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo "🐳 Installing Docker CLI inside Node 16 agent..."
+                echo "Installing Docker CLI inside Node 16 agent."
                 sh 'apt-get update && apt-get install -y docker.io curl'
                 sh 'docker --version && node --version'
-                echo "🐳 Building Docker image: ${DOCKER_IMAGE}"
+                echo "Building Docker image: ${DOCKER_IMAGE}"
                 sh "docker build -t ${DOCKER_IMAGE} ."
                 sh "docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
             }
@@ -65,7 +67,7 @@ pipeline {
 
         stage('Push to Registry') {
             steps {
-                echo "📤 Pushing Docker image to Docker Hub..."
+                echo "Pushing Docker image to Docker Hub."
                 sh 'apt-get update && apt-get install -y docker.io curl'
                 sh "echo '${DOCKERHUB_PSW}' | docker login -u '${DOCKERHUB_USR}' --password-stdin"
                 sh "docker push ${DOCKER_IMAGE}"
@@ -80,7 +82,7 @@ pipeline {
 
         stage('Cleanup Docker Cache') {
             steps {
-                echo '🧹 Cleaning up local Docker images...'
+                echo 'Cleaning up local Docker images.'
                 sh 'apt-get update && apt-get install -y docker.io'
                 sh "docker rmi ${DOCKER_IMAGE} || true"
                 sh "docker rmi ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest || true"
@@ -90,7 +92,7 @@ pipeline {
 
         stage('Archive & Post') {
             steps {
-                echo '📦 Archiving build artifacts...'
+                echo 'Archiving build artifacts.'
                 archiveArtifacts artifacts: 'dist/**/*', allowEmptyArchive: true, fingerprint: true
                 cleanWs()
             }
