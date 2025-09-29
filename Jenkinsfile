@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = 'rgnkrn1234'
-        IMAGE_NAME      = 'Ass2-app'
+        IMAGE_NAME      = 'assingment2-test-app'
         IMAGE_TAG       = "${BUILD_NUMBER}"
         DOCKER_IMAGE    = "${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         DOCKERHUB       = credentials('DockerHub-ID')
