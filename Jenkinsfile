@@ -18,6 +18,12 @@ pipeline {
         SNYK_TOKEN      = credentials('Snyk-Token')
     }
 
+    options {
+    buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '10'))
+    timestamps()   
+    }
+
+
     stages {
         stage('Checkout') {
             steps {
