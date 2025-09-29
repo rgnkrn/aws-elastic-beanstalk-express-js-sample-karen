@@ -1,4 +1,4 @@
-// Assignment 2 Jenkinsfile with Snyk vulnerability scan
+// Assignment 2 Jenkinsfile with Snyk vulnerability scan Final
 
 pipeline {
     agent {
@@ -37,7 +37,7 @@ pipeline {
 
         stage('Snyk Vulnerability Scan') {
             steps {
-                echo 'Running Snyk dependency vulnerability scan.'
+                echo 'Running Snyk dependency vulnerability scan .'
                 sh 'npm install -g snyk'
                 withEnv(["SNYK_TOKEN=${SNYK_TOKEN}"]) {
                     sh 'snyk auth $SNYK_TOKEN'
