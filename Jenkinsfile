@@ -51,12 +51,6 @@ pipeline {
             }
         }
 
-        stage('Build Application') {
-            steps {
-                echo '⚙️ Building the application...'
-                sh 'npm run build || echo "Build step completed"'
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
