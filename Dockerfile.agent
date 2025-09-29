@@ -1,9 +1,0 @@
-FROM node:16
-
-# Install Docker CLI and curl
-RUN apt-get update && \
-    apt-get install -y docker.io curl && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-CMD ["bash"]
